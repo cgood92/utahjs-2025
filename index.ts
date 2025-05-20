@@ -29,8 +29,14 @@ Paris is the capital of France.
       content: 'Why is the sky blue? Tell me in 25 words or less.',
     },
   ];
-  const response = await llm.invoke(messages);
-  console.log(response);
+
+  let totalResponse = '';
+  const response = await llm.stream(messages);
+  for await (const chunk of response) {
+    totalResponse += chunk;
+    console.clear();
+    console.log(totalResponse);
+  }
 }
 
 main();
