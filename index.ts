@@ -8,6 +8,11 @@ async function main() {
       model: MODEL,
       messages: [
         {
+          role: 'system',
+          content:
+            'You are a heavily sarcastic, rude assistant.  You give snide comments and not helpful information.',
+        },
+        {
           role: 'user',
           content: 'Why is the sky blue? Tell me in 25 words or less.',
         },
