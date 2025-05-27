@@ -1,93 +1,69 @@
 import { ChatPromptTemplate } from '@langchain/core/prompts';
-import { Ollama } from '@langchain/ollama';
+import { Ollama, OllamaEmbeddings } from '@langchain/ollama';
+import { DirectoryLoader } from 'langchain/document_loaders/fs/directory';
+import { PDFLoader } from '@langchain/community/document_loaders/fs/pdf';
+import { RecursiveCharacterTextSplitter } from '@langchain/textsplitters';
+import { MemoryVectorStore } from 'langchain/vectorstores/memory';
 
 const llm = new Ollama({
   model: 'qwen3:8b',
 });
+const embeddings = new OllamaEmbeddings();
 
-async function main() {
-  const promptTemplate = ChatPromptTemplate.fromMessages([
-    [
-      'system',
-      `Please answer the user's question using only the knowledge below:
----
-{knowledge}
----`,
-    ],
-    ['user', '{question}'],
-  ]);
-
-  let totalResponse = '';
-
-  const prompt = await promptTemplate.invoke({
-    question:
-      "Explain what 100 humanitarians is like you're talking to a 5 year old",
-    knowledge,
+async function loadDocuments() {
+  const directoryDocs = await new DirectoryLoader('./documents', {
+    '.pdf': (path: string) => new PDFLoader(path),
+  }).load();
+  const textSplitter = new RecursiveCharacterTextSplitter({
+    chunkSize: 500,
+    chunkOverlap: 50,
   });
-  const response = await llm.stream(prompt);
 
-  for await (const chunk of response) {
-    totalResponse += chunk;
-    console.clear();
-    console.log(totalResponse);
-  }
+  const splitDocs = await textSplitter.splitDocuments(directoryDocs);
+  return splitDocs;
 }
 
-const knowledge = `
-# 100 Humanitarians International – Organization Summary
+const vectorStore = await MemoryVectorStore.fromDocuments(
+  await loadDocuments(),
+  embeddings
+);
 
-[100 Humanitarians International](https://100humanitarians.org/) is a U.S.-based nonprofit organization founded in 2015 by Heidi Totten. Its mission is to mentor families globally through self-reliance, education, and entrepreneurship, aiming to eliminate physical, mental, spiritual, and emotional poverty.
+console.log(
+  await vectorStore.similaritySearch(
+    'How much money can come from chicken coops?'
+  )
+);
 
-The organization primarily operates in rural Kenya, focusing on sustainable development initiatives that empower communities to break the cycle of poverty.
+// async function main() {
+//   const question = 'How much income can come from chicken coops?';
+//   const promptTemplate = ChatPromptTemplate.fromMessages([
+//     [
+//       'system',
+//       `Please answer the user's question using only the knowledge below:
+// ---
+// {knowledge}
+// ---
 
----
+// Do NOT use any other information other than the knowledge provided.  If the answer is not in the knowledge, say "I don't know".
 
-## Core Programs
+// Do not mention the documents in your response, or your reasoning.  Just state the answer succinctly.`,
+//     ],
+//     ['user', '{question}'],
+//   ]);
 
-The organization's work is structured around four key pillars:
+//   let totalResponse = '';
 
-### 1. Sustainable Food
-- Implements Garden Towers, chicken businesses, and goat farming.
-- Over 20,000 Garden Towers built to enable year-round produce growth.
+//   const prompt = await promptTemplate.invoke({
+//     question,
+//     knowledge: await vectorStore.similaritySearch(question),
+//   });
+//   const response = await llm.stream(prompt);
 
-### 2. Clean Water
-- Provides rainwater capture systems, spring protection, and boreholes.
-- Reduces waterborne diseases and frees up time for women and girls.
+//   for await (const chunk of response) {
+//     totalResponse += chunk;
+//     console.clear();
+//     console.log(totalResponse);
+//   }
+// }
 
-### 3. Education
-- Offers school fees, supplies, and skills training.
-- Focuses on literacy, sewing, and computer skills for long-term success.
-
-### 4. Health
-- Supports dental clinics, menstrual health programs (HopeKits), and clean water initiatives.
-- Improves family health and economic stability.
-
----
-
-## Impact and Operations
-
-Since its founding, 100 Humanitarians International has:
-
-- Completed over **21,000** sustainable food projects  
-- Implemented more than **1,675** clean water projects  
-- Supported over **6,000** education initiatives  
-- Conducted over **8,575** health projects
-
-The organization runs **six expeditions to Kenya annually**, involving volunteers in both project work and cultural exchange. It is powered by a dedicated team of volunteers in the U.S. and Kenya.
-
----
-
-## How to Get Involved
-
-You can support 100 Humanitarians International in several ways:
-
-- **Donations** (one-time, monthly, stock, or crypto)
-- **Volunteering**
-- **Participating in expeditions**
-
-The organization emphasizes transparency and regularly shares updates on project progress and impact.
-
-➡️ Visit the official website to learn more: [https://100humanitarians.org/](https://100humanitarians.org/)
-`;
-
-main();
+// main();
