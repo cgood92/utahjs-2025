@@ -28,42 +28,36 @@ const vectorStore = await MemoryVectorStore.fromDocuments(
   embeddings
 );
 
-console.log(
-  await vectorStore.similaritySearch(
-    'How much money can come from chicken coops?'
-  )
-);
+async function main() {
+  const question = 'How much income can come from chicken coops?';
+  const promptTemplate = ChatPromptTemplate.fromMessages([
+    [
+      'system',
+      `Please answer the user's question using only the knowledge below:
+---
+{knowledge}
+---
 
-// async function main() {
-//   const question = 'How much income can come from chicken coops?';
-//   const promptTemplate = ChatPromptTemplate.fromMessages([
-//     [
-//       'system',
-//       `Please answer the user's question using only the knowledge below:
-// ---
-// {knowledge}
-// ---
+Do NOT use any other information other than the knowledge provided.  If the answer is not in the knowledge, say "I don't know".
 
-// Do NOT use any other information other than the knowledge provided.  If the answer is not in the knowledge, say "I don't know".
+Do not mention the documents in your response, or your reasoning.  Just state the answer succinctly.`,
+    ],
+    ['user', '{question}'],
+  ]);
 
-// Do not mention the documents in your response, or your reasoning.  Just state the answer succinctly.`,
-//     ],
-//     ['user', '{question}'],
-//   ]);
+  let totalResponse = '';
 
-//   let totalResponse = '';
+  const prompt = await promptTemplate.invoke({
+    question,
+    knowledge: await vectorStore.similaritySearch(question),
+  });
+  const response = await llm.stream(prompt);
 
-//   const prompt = await promptTemplate.invoke({
-//     question,
-//     knowledge: await vectorStore.similaritySearch(question),
-//   });
-//   const response = await llm.stream(prompt);
+  for await (const chunk of response) {
+    totalResponse += chunk;
+    console.clear();
+    console.log(totalResponse);
+  }
+}
 
-//   for await (const chunk of response) {
-//     totalResponse += chunk;
-//     console.clear();
-//     console.log(totalResponse);
-//   }
-// }
-
-// main();
+main();
