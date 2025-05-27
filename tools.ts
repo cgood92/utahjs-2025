@@ -35,34 +35,34 @@ Tell me which function to call, and the arguments (as a JSON object).  Tell me t
 
   console.log(response);
 
-  //   const nonThinkingResponse = response.message.content.replace(
-  //     /<think>[\s\S]*?<\/think>/gm,
-  //     ''
-  //   );
+  const nonThinkingResponse = response.message.content.replace(
+    /<think>[\s\S]*?<\/think>/gm,
+    ''
+  );
 
-  //   const functionName = JSON.parse(nonThinkingResponse).function;
-  //   const functionArgs = JSON.parse(nonThinkingResponse).arguments;
+  const functionName = JSON.parse(nonThinkingResponse).function;
+  const functionArgs = JSON.parse(nonThinkingResponse).arguments;
 
-  //   const functionToCall = functions[functionName];
-  //   functionToCall(functionArgs);
+  const functionToCall = functions[functionName];
+  functionToCall(functionArgs);
 }
 
 main();
 
-// function donate(amount: number) {
-//   console.info('going to call donate API call...');
-// }
+function donate(amount: number) {
+  console.info('going to call donate API call...', amount);
+}
 
-// function getExpeditionGuide(email: string) {
-//   console.info('going to call getExpeditionGuide API call...');
-// }
+function getExpeditionGuide(email: string) {
+  console.info('going to call getExpeditionGuide API call...', email);
+}
 
-// function joinExpedition(email: string, startDate: Date) {
-//   console.info('going to call joinExpedition API call...');
-// }
+function joinExpedition(email: string, startDate: Date) {
+  console.info('going to call joinExpedition API call...', email, startDate);
+}
 
-// const functions = {
-//   donate,
-//   getExpeditionGuide,
-//   joinExpedition,
-// };
+const functions = {
+  donate,
+  getExpeditionGuide,
+  joinExpedition,
+};
