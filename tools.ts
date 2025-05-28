@@ -18,33 +18,77 @@ I want to get more information about an expedition.
 Here is some context about the user:
 ---
 My email address is clintg@adobe.com.
----
-
-Here are the functions, with a description of what they do:
-- donate: Donate to 100 humanitarians.  Arguments: {amount: number}
-- getExpeditionGuide: Get a guide for an expedition. Arguments: {email: string}
-- joinExpedition: Commit to join an expedition. Arguments: {email: string, startDate: Date}
-
-Tell me which function to call, and the arguments (as a JSON object).  Tell me the answer, and nothing else.
-          `,
+---`,
         },
       ],
       stream: false,
+      tools: [
+        {
+          type: 'function',
+          function: {
+            name: 'donate',
+            description: 'Donate to 100 humanitarians.',
+            parameters: {
+              type: 'object',
+              properties: {
+                amount: {
+                  type: 'number',
+                  description: 'The amount to donate.',
+                },
+              },
+              required: ['amount'],
+            },
+          },
+        },
+        {
+          type: 'function',
+          function: {
+            name: 'getExpeditionGuide',
+            description: 'Get a guide for an expedition.',
+            parameters: {
+              type: 'object',
+              properties: {
+                email: {
+                  type: 'string',
+                  description: 'The email of the user.',
+                },
+              },
+              required: ['email'],
+            },
+          },
+        },
+        {
+          type: 'function',
+          function: {
+            name: 'joinExpedition',
+            description: 'Join an expedition.',
+            parameters: {
+              type: 'object',
+              properties: {
+                email: {
+                  type: 'string',
+                  description: 'The email of the user.',
+                },
+                startDate: {
+                  type: 'string',
+                  description: 'The start date of the expedition.',
+                },
+              },
+              required: ['email', 'startDate'],
+            },
+          },
+        },
+      ],
     }),
   }).then((res) => res.json());
 
-  console.log(response);
+  console.log(JSON.stringify(response, null, 2));
 
-  const nonThinkingResponse = response.message.content.replace(
-    /<think>[\s\S]*?<\/think>/gm,
-    ''
-  );
+  // const [toolCall] = response.message.tool_calls;
+  // const { name, arguments: args } = toolCall.function;
 
-  const functionName = JSON.parse(nonThinkingResponse).function;
-  const functionArgs = JSON.parse(nonThinkingResponse).arguments;
-
-  const functionToCall = functions[functionName];
-  functionToCall(functionArgs);
+  // const functionToCall = functions[name];
+  // functionToCall(args);
 }
 
 main();
