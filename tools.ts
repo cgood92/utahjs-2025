@@ -4,10 +4,20 @@ import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/
 import { tool } from '@langchain/core/tools';
 import { z } from 'zod';
 
+type Metadata = {
+  application: string;
+};
+
+type AuthInfo = {
+  extra: {
+    hello: string;
+  };
+};
+
 const donateSchema = z.object({
   amount: z.number().describe('The amount to donate.'),
 });
-const donateTool = tool<typeof donateSchema>(
+const donateTool = tool<typeof donateSchema & Metadata & AuthInfo['extra']>(
   async function ({ amount }) {
     console.info('going to call donate API call...', amount);
     return `Donation of ${amount} processed successfully`;
@@ -22,7 +32,9 @@ const donateTool = tool<typeof donateSchema>(
 const getExpeditionGuideSchema = z.object({
   email: z.string().describe('The email of the user.'),
 });
-const getExpeditionGuideTool = tool<typeof getExpeditionGuideSchema>(
+const getExpeditionGuideTool = tool<
+  typeof getExpeditionGuideSchema & Metadata & AuthInfo['extra']
+>(
   async function ({ email }) {
     console.info('going to call getExpeditionGuide API call...', email);
     return `Expedition guide sent to ${email}`;
@@ -38,7 +50,9 @@ const joinExpeditionSchema = z.object({
   email: z.string().describe('The email of the user.'),
   startDate: z.string().describe('The start date of the expedition.'),
 });
-const joinExpeditionTool = tool<typeof joinExpeditionSchema>(
+const joinExpeditionTool = tool<
+  typeof joinExpeditionSchema & Metadata & AuthInfo['extra']
+>(
   async function ({ email, startDate }) {
     console.info('going to call joinExpedition API call...', email, startDate);
     return `Successfully joined expedition starting ${startDate}`;
@@ -56,21 +70,30 @@ const tools = {
   joinExpedition: joinExpeditionTool,
 };
 
-const server = new McpServer({
-  name: '100 Humanitarians MCP',
-  version: '1.0.0',
-});
-
-Object.keys(tools).forEach((toolName) => {
-  const tool = tools[toolName];
-  server.tool(toolName, tool.schema.shape, async (params) => ({
-    content: [{ type: 'text', text: await tool.invoke(params) }],
-  }));
-});
-
 const app = fastify();
 
 app.post('/mcp', async (req, reply) => {
+  const server = new McpServer({
+    name: '100 Humanitarians MCP',
+    version: '1.0.0',
+  });
+
+  Object.keys(tools).forEach((toolName) => {
+    const tool = tools[toolName];
+    server.tool(toolName, tool.schema.shape, async (params, extra) => ({
+      content: [
+        {
+          type: 'text',
+          text: await tool.func({
+            ...params,
+            ...extra._meta,
+            ...extra.authInfo.extra,
+          }),
+        },
+      ],
+    }));
+  });
+
   const transport = new StreamableHTTPServerTransport({
     sessionIdGenerator: undefined,
   });
@@ -81,6 +104,13 @@ app.post('/mcp', async (req, reply) => {
   });
 
   await server.server.connect(transport);
+  Object.assign(req.raw, {
+    auth: {
+      extra: {
+        userId: '123',
+      },
+    },
+  });
   await transport.handleRequest(req.raw, reply.raw, req.body);
 });
 
