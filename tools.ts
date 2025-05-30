@@ -1,4 +1,6 @@
-import { ChatOllama } from '@langchain/ollama';
+import { fastify } from 'fastify';
+import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import { tool } from '@langchain/core/tools';
 import { z } from 'zod';
 
@@ -54,33 +56,48 @@ const tools = {
   joinExpedition: joinExpeditionTool,
 };
 
-async function main() {
-  const model = new ChatOllama({
-    model: 'qwen3:8b',
-  }).bindTools([donateTool, getExpeditionGuideTool, joinExpeditionTool]);
+const server = new McpServer({
+  name: '100 Humanitarians MCP',
+  version: '1.0.0',
+});
 
-  const result = await model.invoke([
-    {
-      role: 'user',
-      content: `The user has a query below. I want to execute a function to complete the user's request. Here is the request:
+Object.keys(tools).forEach((toolName) => {
+  const tool = tools[toolName];
+  server.tool(toolName, tool.schema.shape, async (params) => ({
+    content: [{ type: 'text', text: await tool.invoke(params) }],
+  }));
+});
 
----
-I want to get more information about an expedition.
----
+const app = fastify();
 
-Here is some context about the user:
----
-My email address is clintg@adobe.com.
----`,
-    },
-  ]);
+app.post('/mcp', async (req, reply) => {
+  const transport = new StreamableHTTPServerTransport({
+    sessionIdGenerator: undefined,
+  });
 
-  const [toolCall] = result.tool_calls!;
-  const { name, args } = toolCall;
+  reply.raw.on('close', async () => {
+    await transport.close();
+    await server.server.close();
+  });
 
-  const tool = tools[name];
-  const functionResult = await tool.invoke(args);
-  console.log(functionResult);
-}
+  await server.server.connect(transport);
+  await transport.handleRequest(req.raw, reply.raw, req.body);
+});
 
-main().catch(console.error);
+app.listen({ port: 3000 });
+
+/*
+curl --request POST \
+  --url http://localhost:3000/mcp \
+  --header 'Accept: application/json, text/event-stream' \
+  --header 'Content-Type: application/json' \
+  --data '{"method":"tools/list","params":{"_meta":{"application":"workfront"}},"jsonrpc":"2.0","id":3}'
+*/
+
+/*
+curl --request POST \
+  --url http://localhost:3000/mcp \
+  --header 'Accept: application/json, text/event-stream' \
+  --header 'Content-Type: application/json' \
+  --data '{"method":"tools/call","params":{"name":"donate","arguments":{"amount":546},"_meta":{"application":"workfront"}},"jsonrpc":"2.0","id":4}'
+*/
