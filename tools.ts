@@ -4,20 +4,10 @@ import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/
 import { tool } from '@langchain/core/tools';
 import { z } from 'zod';
 
-type Metadata = {
-  application: string;
-};
-
-type AuthInfo = {
-  extra: {
-    hello: string;
-  };
-};
-
 const donateSchema = z.object({
   amount: z.number().describe('The amount to donate.'),
 });
-const donateTool = tool<typeof donateSchema & Metadata & AuthInfo['extra']>(
+const donateTool = tool<typeof donateSchema>(
   async function ({ amount }) {
     console.info('going to call donate API call...', amount);
     return `Donation of ${amount} processed successfully`;
@@ -32,9 +22,7 @@ const donateTool = tool<typeof donateSchema & Metadata & AuthInfo['extra']>(
 const getExpeditionGuideSchema = z.object({
   email: z.string().describe('The email of the user.'),
 });
-const getExpeditionGuideTool = tool<
-  typeof getExpeditionGuideSchema & Metadata & AuthInfo['extra']
->(
+const getExpeditionGuideTool = tool<typeof getExpeditionGuideSchema>(
   async function ({ email }) {
     console.info('going to call getExpeditionGuide API call...', email);
     return `Expedition guide sent to ${email}`;
@@ -50,9 +38,7 @@ const joinExpeditionSchema = z.object({
   email: z.string().describe('The email of the user.'),
   startDate: z.string().describe('The start date of the expedition.'),
 });
-const joinExpeditionTool = tool<
-  typeof joinExpeditionSchema & Metadata & AuthInfo['extra']
->(
+const joinExpeditionTool = tool<typeof joinExpeditionSchema>(
   async function ({ email, startDate }) {
     console.info('going to call joinExpedition API call...', email, startDate);
     return `Successfully joined expedition starting ${startDate}`;
@@ -84,15 +70,11 @@ app.post('/mcp', async (req, reply) => {
       tool.name,
       tool.description,
       tool.schema.shape,
-      async (params, extra) => ({
+      async (params) => ({
         content: [
           {
             type: 'text', // Note there is text, image, audio, resource types
-            text: await tool.func({
-              ...params,
-              ...extra._meta,
-              ...extra.authInfo.extra,
-            }),
+            text: await tool.func(params),
           },
         ],
       })
@@ -109,30 +91,7 @@ app.post('/mcp', async (req, reply) => {
   });
 
   await server.server.connect(transport);
-  Object.assign(req.raw, {
-    auth: {
-      extra: {
-        userId: '123',
-      },
-    },
-  });
   await transport.handleRequest(req.raw, reply.raw, req.body);
 });
 
 app.listen({ port: 3000 });
-
-/*
-curl --request POST \
-  --url http://localhost:3000/mcp \
-  --header 'Accept: application/json, text/event-stream' \
-  --header 'Content-Type: application/json' \
-  --data '{"method":"tools/list","params":{"_meta":{"application":"workfront"}},"jsonrpc":"2.0","id":3}'
-*/
-
-/*
-curl --request POST \
-  --url http://localhost:3000/mcp \
-  --header 'Accept: application/json, text/event-stream' \
-  --header 'Content-Type: application/json' \
-  --data '{"method":"tools/call","params":{"name":"donate","arguments":{"amount":546},"_meta":{"application":"workfront"}},"jsonrpc":"2.0","id":4}'
-*/
