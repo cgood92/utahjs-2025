@@ -111,6 +111,44 @@
     zod "^3.22.4"
     zod-to-json-schema "^3.22.3"
 
+"@langchain/langgraph-checkpoint@~0.0.17":
+  version "0.0.17"
+  resolved "https://artifactory-uw2.adobeitc.com/artifactory/api/npm/npm-wf-dev/@langchain/langgraph-checkpoint/-/langgraph-checkpoint-0.0.17.tgz#d0a8824eb0769567da54262adebe65db4ee6d58f"
+  integrity sha512-6b3CuVVYx+7x0uWLG+7YXz9j2iBa+tn2AXvkLxzEvaAsLE6Sij++8PPbS2BZzC+S/FPJdWsz6I5bsrqL0BYrCA==
+  dependencies:
+    uuid "^10.0.0"
+
+"@langchain/langgraph-sdk@~0.0.32":
+  version "0.0.78"
+  resolved "https://artifactory-uw2.adobeitc.com/artifactory/api/npm/npm-wf-dev/@langchain/langgraph-sdk/-/langgraph-sdk-0.0.78.tgz#898fbd5d844e3b8a74341df89af008d878956766"
+  integrity sha512-skkUDmEhClWzlsr8jRaS1VpXVBISm5OFd0MUtS1jKRL5pn08K+IJRvHnlzgum9x7Dste9KXGcIGVoR7cNKJQrw==
+  dependencies:
+    "@types/json-schema" "^7.0.15"
+    p-queue "^6.6.2"
+    p-retry "4"
+    uuid "^9.0.0"
+
+"@langchain/langgraph@0.2.74":
+  version "0.2.74"
+  resolved "https://artifactory-uw2.adobeitc.com/artifactory/api/npm/npm-wf-dev/@langchain/langgraph/-/langgraph-0.2.74.tgz#37367a1e8bafda3548037a91449a69a84f285def"
+  integrity sha512-oHpEi5sTZTPaeZX1UnzfM2OAJ21QGQrwReTV6+QnX7h8nDCBzhtipAw1cK616S+X8zpcVOjgOtJuaJhXa4mN8w==
+  dependencies:
+    "@langchain/langgraph-checkpoint" "~0.0.17"
+    "@langchain/langgraph-sdk" "~0.0.32"
+    uuid "^10.0.0"
+    zod "^3.23.8"
+
+"@langchain/mcp-adapters@0.4.5":
+  version "0.4.5"
+  resolved "https://artifactory-uw2.adobeitc.com/artifactory/api/npm/npm-wf-dev/@langchain/mcp-adapters/-/mcp-adapters-0.4.5.tgz#08bb86bca6f4a9ea5470b9a974ba28a68bf82320"
+  integrity sha512-Hkm6wor14utKqmmtNIriibFYDkHKCDqWWVrWSoJnQ2IF1Ex8DQPIYyAgrSKlIPVP4CtR5u/Vklvg5kPzFmeCvw==
+  dependencies:
+    "@modelcontextprotocol/sdk" "^1.11.2"
+    debug "^4.4.0"
+    zod "^3.24.2"
+  optionalDependencies:
+    extended-eventsource "^1.x"
+
 "@langchain/ollama@^0.2.0":
   version "0.2.0"
   resolved "https://artifactory-uw2.adobeitc.com/artifactory/api/npm/npm-wf-dev/@langchain/ollama/-/ollama-0.2.0.tgz#43b3c90e9bd82256e26b70edf37304694aeaf5d1"
@@ -146,7 +184,7 @@
     uuid "^10.0.0"
     weaviate-client "^3.5.2"
 
-"@modelcontextprotocol/sdk@^1.12.1":
+"@modelcontextprotocol/sdk@^1.11.2", "@modelcontextprotocol/sdk@^1.12.1":
   version "1.12.1"
   resolved "https://artifactory-uw2.adobeitc.com/artifactory/api/npm/npm-wf-dev/@modelcontextprotocol/sdk/-/sdk-1.12.1.tgz#f77503f0263b33cb1e5b81a6ff0c322393cabd37"
   integrity sha512-KG1CZhZfWg+u8pxeM/mByJDScJSrjjxLc8fwQqbsS8xCjBmQfMNEBTotYdNanKekepnfRI85GtgQlctLFpcYPw==
@@ -215,6 +253,11 @@
   version "1.1.0"
   resolved "https://artifactory-uw2.adobeitc.com/artifactory/api/npm/npm-wf-dev/@protobufjs/utf8/-/utf8-1.1.0.tgz#a777360b5b39a1a2e5106f8e858f2fd2d060c570"
   integrity sha512-Vvn3zZrhQZkkBE8LSuW3em98c0FwgO4nxzv6OdSxPKJIEKY2bGbHn+mhGIPerzI4twdxaP8/0+06HBpwf345Lw==
+
+"@types/json-schema@^7.0.15":
+  version "7.0.15"
+  resolved "https://artifactory-uw2.adobeitc.com/artifactory/api/npm/npm-wf-dev/@types/json-schema/-/json-schema-7.0.15.tgz#596a1747233694d50f6ad8a7869fcb6f56cf5841"
+  integrity sha512-5+fP8P8MFNC+AyZCDxrB2pkZFPGzqQWUzpSeuuVLvm8VMcorNYavBqoFcxK8bQz4Qsbn4oUEEem4wDLfcysGHA==
 
 "@types/node-fetch@^2.6.4":
   version "2.6.12"
@@ -664,6 +707,11 @@ express@^5.0.1:
     type-is "^2.0.1"
     vary "^1.1.2"
 
+extended-eventsource@^1.x:
+  version "1.7.0"
+  resolved "https://artifactory-uw2.adobeitc.com/artifactory/api/npm/npm-wf-dev/extended-eventsource/-/extended-eventsource-1.7.0.tgz#8dd50a96aeca1571f407fc2d4bc08c234b140f19"
+  integrity sha512-s8rtvZuYcKBpzytHb5g95cHbZ1J99WeMnV18oKc5wKoxkHzlzpPc/bNAm7Da2Db0BDw0CAu1z3LpH+7UsyzIpw==
+
 fast-decode-uri-component@^1.0.1:
   version "1.0.1"
   resolved "https://artifactory-uw2.adobeitc.com/artifactory/api/npm/npm-wf-dev/fast-decode-uri-component/-/fast-decode-uri-component-1.0.1.tgz#46f8b6c22b30ff7a81357d4f59abfae938202543"
@@ -895,6 +943,11 @@ iconv-lite@0.6.3, iconv-lite@^0.6.3:
   integrity sha512-4fCk79wshMdzMp2rH06qWrJE4iolqLhCUH+OiuIgU++RB0+94NlDL81atO7GX55uUKueo0txHNtvEyI6D7WdMw==
   dependencies:
     safer-buffer ">= 2.1.2 < 3.0.0"
+
+incomplete-json-parser@1.1.4:
+  version "1.1.4"
+  resolved "https://artifactory-uw2.adobeitc.com/artifactory/api/npm/npm-wf-dev/incomplete-json-parser/-/incomplete-json-parser-1.1.4.tgz#f5f7b637eb119dea5e147e43c293144d23fc7835"
+  integrity sha512-CiE1lQCt7fAwFbScnCRmScNYST97f9/hIvoU+0iIQQjoezOEepBj6qHsMMb0kW3yfeme9psM/83lrrADoguI1w==
 
 inherits@2.0.4:
   version "2.0.4"
@@ -1589,7 +1642,7 @@ uuid@^10.0.0:
   resolved "https://artifactory-uw2.adobeitc.com/artifactory/api/npm/npm-wf-dev/uuid/-/uuid-10.0.0.tgz#5a95aa454e6e002725c79055fd42aaba30ca6294"
   integrity sha512-8XkAphELsDnEGrDxUOHB3RGvXz6TeuYSGEZBOjtTtPm2lwhGBjLgOzLHB63IUWfBpNucQjND6d3AOudO+H3RWQ==
 
-uuid@^9.0.1:
+uuid@^9.0.0, uuid@^9.0.1:
   version "9.0.1"
   resolved "https://artifactory-uw2.adobeitc.com/artifactory/api/npm/npm-wf-dev/uuid/-/uuid-9.0.1.tgz#e188d4c8853cc722220392c424cd637f32293f30"
   integrity sha512-b+1eJOlsR9K8HJpow9Ok3fiWOWSIcIzXodvv0rQjVoOVNpWMpxf1wZNpt4y9h10odCNrqnYp1OBzRktckBe3sA==
@@ -1695,7 +1748,7 @@ zod@^3.22.3, zod@^3.22.4, zod@^3.24.1:
   resolved "https://artifactory-uw2.adobeitc.com/artifactory/api/npm/npm-wf-dev/zod/-/zod-3.25.7.tgz#74184ecfe03ef8c67a62393008117b3b8d9cc48c"
   integrity sha512-YGdT1cVRmKkOg6Sq7vY7IkxdphySKnXhaUmFI4r4FcuFVNgpCb9tZfNwXbT6BPjD5oz0nubFsoo9pIqKrDcCvg==
 
-zod@^3.23.8:
+zod@^3.23.8, zod@^3.24.2:
   version "3.25.42"
   resolved "https://artifactory-uw2.adobeitc.com/artifactory/api/npm/npm-wf-dev/zod/-/zod-3.25.42.tgz#4818381b32f5120e7ea06decb1cde54a230cad2a"
   integrity sha512-PcALTLskaucbeHc41tU/xfjfhcz8z0GdhhDcSgrCTmSazUuqnYqiXO63M0QUBVwpBlsLsNVn5qHSC5Dw3KZvaQ==

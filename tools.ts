@@ -80,18 +80,23 @@ app.post('/mcp', async (req, reply) => {
 
   Object.keys(tools).forEach((toolName) => {
     const tool = tools[toolName];
-    server.tool(toolName, tool.schema.shape, async (params, extra) => ({
-      content: [
-        {
-          type: 'text',
-          text: await tool.func({
-            ...params,
-            ...extra._meta,
-            ...extra.authInfo.extra,
-          }),
-        },
-      ],
-    }));
+    server.tool(
+      tool.name,
+      tool.description,
+      tool.schema.shape,
+      async (params, extra) => ({
+        content: [
+          {
+            type: 'text', // Note there is text, image, audio, resource types
+            text: await tool.func({
+              ...params,
+              ...extra._meta,
+              ...extra.authInfo.extra,
+            }),
+          },
+        ],
+      })
+    );
   });
 
   const transport = new StreamableHTTPServerTransport({
