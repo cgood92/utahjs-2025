@@ -1,63 +1,57 @@
-import { ChatPromptTemplate } from '@langchain/core/prompts';
-import { Ollama, OllamaEmbeddings } from '@langchain/ollama';
-import { DirectoryLoader } from 'langchain/document_loaders/fs/directory';
-import { PDFLoader } from '@langchain/community/document_loaders/fs/pdf';
-import { RecursiveCharacterTextSplitter } from '@langchain/textsplitters';
-import { MemoryVectorStore } from 'langchain/vectorstores/memory';
+import {
+  AIMessage,
+  HumanMessage,
+  SystemMessage,
+} from '@langchain/core/messages';
+import { Command } from '@langchain/langgraph';
+import { v4 as uuidv4 } from 'uuid';
+import { graph } from './graph.ts';
 
-const llm = new Ollama({
-  model: 'qwen3:8b',
-});
-const embeddings = new OllamaEmbeddings();
-
-async function loadDocuments() {
-  const directoryDocs = await new DirectoryLoader('./documents', {
-    '.pdf': (path: string) => new PDFLoader(path),
-  }).load();
-  const textSplitter = new RecursiveCharacterTextSplitter({
-    chunkSize: 500,
-    chunkOverlap: 50,
-  });
-
-  const splitDocs = await textSplitter.splitDocuments(directoryDocs);
-  return splitDocs;
+export async function startConversation(
+  input: string,
+  threadId: string = uuidv4()
+) {
+  return run(input, threadId, false);
 }
 
-const vectorStore = await MemoryVectorStore.fromDocuments(
-  await loadDocuments(),
-  embeddings
-);
+export async function continueConversation(input: string, threadId: string) {
+  return run(input, threadId, true);
+}
 
-async function main() {
-  const question = 'How much income can come from chicken coops?';
-  const promptTemplate = ChatPromptTemplate.fromMessages([
-    [
-      'system',
-      `Please answer the user's question using only the knowledge below:
----
-{knowledge}
----
+async function run(
+  input: string,
+  threadId: string,
+  continueConversation = false
+) {
+  const threadConfig = { configurable: { thread_id: threadId } };
 
-Do NOT use any other information other than the knowledge provided.  If the answer is not in the knowledge, say "I don't know".
+  const inputs = continueConversation
+    ? new Command({ resume: { input } })
+    : {
+        messages: [
+          new SystemMessage(
+            'You are a helpful AI assistant that answers questions and performs actions related to 100 Humanitarians.  Look at the user query, and determine how it relates to 100 humanitarians.  Then, call the appropriate tool to either get the answer to the question or perform the desired action.  If you do not know the answer, please call the tool: getInformation for the answer.  Once you have either the answer or the action has been performed, call the tool "talk_to_user" to inform the user about their request.'
+          ),
+          new HumanMessage(input),
+        ],
+      };
 
-Do not mention the documents in your response, or your reasoning.  Just state the answer succinctly.`,
-    ],
-    ['user', '{question}'],
-  ]);
+  const result = await graph.invoke(inputs, threadConfig);
 
-  let totalResponse = '';
+  const lastMessage = getMessageToUser(result.messages.at(-1) as AIMessage);
+  return lastMessage;
+}
 
-  const prompt = await promptTemplate.invoke({
-    question,
-    knowledge: await vectorStore.similaritySearch(question),
-  });
-  const response = await llm.stream(prompt);
+function getMessageToUser(message: AIMessage) {
+  if (message.content) {
+    return message.content as string;
+  }
 
-  for await (const chunk of response) {
-    totalResponse += chunk;
-    console.clear();
-    console.log(totalResponse);
+  if (message.tool_calls?.length) {
+    return message.tool_calls[0].args.message as string;
   }
 }
 
-main();
+startConversation(
+  'How much money does a chicken bring in for a family in Kenya, and donate 10 times that amount.'
+);
