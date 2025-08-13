@@ -1,104 +1,83 @@
-import { fastify } from 'fastify';
-import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
+import { ChatOllama } from '@langchain/ollama';
 import { tool } from '@langchain/core/tools';
 import { z } from 'zod';
 
-type Metadata = {
-  application: string;
-};
+import { fastify } from 'fastify';
+import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 
-type AuthInfo = {
-  extra: {
-    hello: string;
-  };
-};
-
-const donateSchema = z.object({
-  amount: z.number().describe('The amount to donate.'),
+const createReportSchema = z.object({
+  name: z.string().describe('The name of the report.'),
 });
-const donateTool = tool<typeof donateSchema & Metadata & AuthInfo['extra']>(
-  async function ({ amount }) {
-    console.info('going to call donate API call...', amount);
-    return `Donation of ${amount} processed successfully`;
+const createReportTool = tool(
+  async function ({ name }) {
+    console.info('going to call createReport API call...', name);
+    return `Report "${name}" created successfully`;
   },
   {
-    name: 'donate',
-    description: 'Donate to 100 humanitarians.',
-    schema: donateSchema,
+    name: 'createReport',
+    description: 'Create a new report.',
+    schema: createReportSchema,
   }
 );
 
-const getExpeditionGuideSchema = z.object({
-  email: z.string().describe('The email of the user.'),
+const sendReportSchema = z.object({
+  email: z.string().describe('The email address to send the report to.'),
+  onDate: z.string().describe('The date to send the report.'),
 });
-const getExpeditionGuideTool = tool<
-  typeof getExpeditionGuideSchema & Metadata & AuthInfo['extra']
->(
-  async function ({ email }) {
-    console.info('going to call getExpeditionGuide API call...', email);
-    return `Expedition guide sent to ${email}`;
+const sendReportTool = tool(
+  async function ({ email, onDate }) {
+    console.info('going to call sendReport API call...', email, onDate);
+    return `Report scheduled to be sent to ${email} on ${onDate}`;
   },
   {
-    name: 'getExpeditionGuide',
-    description: 'Get a guide for an expedition.',
-    schema: getExpeditionGuideSchema,
+    name: 'sendReport',
+    description: 'Send a report to an email on a date.',
+    schema: sendReportSchema,
   }
 );
 
-const joinExpeditionSchema = z.object({
-  email: z.string().describe('The email of the user.'),
-  startDate: z.string().describe('The start date of the expedition.'),
+const deleteReportSchema = z.object({
+  name: z.string().describe('The name of the report to delete.'),
 });
-const joinExpeditionTool = tool<
-  typeof joinExpeditionSchema & Metadata & AuthInfo['extra']
->(
-  async function ({ email, startDate }) {
-    console.info('going to call joinExpedition API call...', email, startDate);
-    return `Successfully joined expedition starting ${startDate}`;
+const deleteReportTool = tool(
+  async function ({ name }) {
+    console.info('going to call deleteReport API call...', name);
+    return `Report "${name}" deleted successfully`;
   },
   {
-    name: 'joinExpedition',
-    description: 'Join an expedition.',
-    schema: joinExpeditionSchema,
+    name: 'deleteReport',
+    description: 'Delete a report.',
+    schema: deleteReportSchema,
   }
 );
 
 const tools = {
-  donate: donateTool,
-  getExpeditionGuide: getExpeditionGuideTool,
-  joinExpedition: joinExpeditionTool,
+  createReport: createReportTool,
+  sendReport: sendReportTool,
+  deleteReport: deleteReportTool,
 };
+
+const server = new McpServer({
+  name: 'Reports MCP',
+  version: '1.0.0',
+});
+
+Object.keys(tools).forEach((toolName) => {
+  const tool = tools[toolName];
+  server.tool(
+    tool.name,
+    tool.description,
+    tool.schema.shape,
+    async (params) => ({
+      content: [{ type: 'text', text: await tool.invoke(params) }],
+    })
+  );
+});
 
 const app = fastify();
 
 app.post('/mcp', async (req, reply) => {
-  const server = new McpServer({
-    name: '100 Humanitarians MCP',
-    version: '1.0.0',
-  });
-
-  Object.keys(tools).forEach((toolName) => {
-    const tool = tools[toolName];
-    server.tool(
-      tool.name,
-      tool.description,
-      tool.schema.shape,
-      async (params, extra) => ({
-        content: [
-          {
-            type: 'text', // Note there is text, image, audio, resource types
-            text: await tool.func({
-              ...params,
-              ...extra._meta,
-              ...extra.authInfo.extra,
-            }),
-          },
-        ],
-      })
-    );
-  });
-
   const transport = new StreamableHTTPServerTransport({
     sessionIdGenerator: undefined,
   });
@@ -109,30 +88,7 @@ app.post('/mcp', async (req, reply) => {
   });
 
   await server.server.connect(transport);
-  Object.assign(req.raw, {
-    auth: {
-      extra: {
-        userId: '123',
-      },
-    },
-  });
   await transport.handleRequest(req.raw, reply.raw, req.body);
 });
 
 app.listen({ port: 3000 });
-
-/*
-curl --request POST \
-  --url http://localhost:3000/mcp \
-  --header 'Accept: application/json, text/event-stream' \
-  --header 'Content-Type: application/json' \
-  --data '{"method":"tools/list","params":{"_meta":{"application":"workfront"}},"jsonrpc":"2.0","id":3}'
-*/
-
-/*
-curl --request POST \
-  --url http://localhost:3000/mcp \
-  --header 'Accept: application/json, text/event-stream' \
-  --header 'Content-Type: application/json' \
-  --data '{"method":"tools/call","params":{"name":"donate","arguments":{"amount":546},"_meta":{"application":"workfront"}},"jsonrpc":"2.0","id":4}'
-*/

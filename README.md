@@ -199,6 +199,7 @@ const prompt = await promptTemplate.invoke({
     "Explain what 100 humanitarians is like you're talking to a 5 year old",
   knowledge: '',
 });
+let totalResponse = '';
 const response = await llm.stream(prompt);
 ```
 
@@ -346,7 +347,9 @@ const vectorStore = await MemoryVectorStore.fromDocuments(
 );
 
 const retriever = vectorStore.asRetriever(1);
-console.log(await retriever.invoke('education')); // Note that education is present in all documents
+console.log(await retriever.invoke('education'));
+
+// Note that education is present in all documents
 ```
 
 ### Step 13: PDF Document loaders and chunking
@@ -407,21 +410,6 @@ main();
 ### Step 15: Prompting for function calls
 
 ```typescript
-// File: tools.ts
-function donate(amount: number) {
-  console.info('going to call donate API call...');
-}
-
-function getExpeditionGuide(email: string) {
-  console.info('going to call getExpeditionGuide API call...');
-}
-
-function joinExpedition(email: string, startDate: Date) {
-  console.info('going to call joinExpedition API call...');
-}
-```
-
-```typescript
 const OLLAMA_URL = 'http://localhost:11434';
 const MODEL = 'qwen3:8b';
 
@@ -441,33 +429,49 @@ async function main() {
 main();
 ```
 
+```typescript
+// File: tools.ts
+function createReport(name) {
+  console.info(arguments);
+  console.info('going to call the create report API endpoint...');
+  return 'Report created';
+}
+
+function sendReport(email, onDate) {
+  console.info(arguments);
+  console.info('going to call sendReport API call...');
+  return 'Report sent';
+}
+
+function deleteReport(name) {
+  console.info(arguments);
+  console.info('going to call deleteReport API call...');
+  return 'Report deleted';
+}
+```
+
 User message below:
 
 ```plaintext
-The user has a query below.  I want to execute a function to complete the user's request.  Here is the request:
-
----
-I want to get more information about an expedition.
----
-
-Here is some context about the user:
----
-My email address is clintg@adobe.com.
----
+The user has a query below.  I want to execute a function to complete the user's request.
 
 Here are the functions, with a description of what they do:
-- donate: Donate to 100 humanitarians.  Arguments: {amount: number}
-- getExpeditionGuide: Get a guide for an expedition. Arguments: {email: string}
-- joinExpedition: Commit to join an expedition. Arguments: {email: string, startDate: Date}
+- createReport: Create a report.  Arguments: {name: string}
+- sendReport: Sends a report to an email on a date. Arguments: {email: string, onDate: Date}
+- deleteReport: Deletes a report. Arguments: {name: string}
 
 Tell me which function to call, and the arguments (as a JSON object).  Tell me the answer, and nothing else.
 ```
 
+```plaintext
+Send a report to clintg@adobe.com on 2025-10-10
+```
+
 ```typescript
 const functions = {
-  donate,
-  getExpeditionGuide,
-  joinExpedition,
+  createReport,
+  sendReport,
+  deleteReport,
 };
 
 ...
@@ -488,9 +492,9 @@ functionToCall(arguments);
 
 ```diff
 -Here are the functions, with a description of what they do:
--- donate: Donate to 100 humanitarians.  Arguments: {amount: number}
--- getExpeditionGuide: Get a guide for an expedition. Arguments: {email: string}
--- joinExpedition: Commit to join an expedition. Arguments: {email: string, startDate: Date}
+-- createReport: Create a report.  Arguments: {name: string}
+-- sendReport: Sends a report to an email on a date. Arguments: {email: string, onDate: Date}
+-- deleteReport: Deletes a report. Arguments: {name: string}
 -
 -Tell me which function to call, and the arguments (as a JSON object).  Tell me the answer, and nothing else.
 ```
@@ -500,55 +504,55 @@ functionToCall(arguments);
         {
           type: 'function',
           function: {
-            name: 'donate',
-            description: 'Donate to 100 humanitarians.',
+            name: 'createReport',
+            description: 'Create a new report.',
             parameters: {
               type: 'object',
               properties: {
-                amount: {
-                  type: 'number',
-                  description: 'The amount to donate.',
+                name: {
+                  type: 'string',
+                  description: 'The name of the report.',
                 },
               },
-              required: ['amount'],
+              required: ['name'],
             },
           },
         },
         {
           type: 'function',
           function: {
-            name: 'getExpeditionGuide',
-            description: 'Get a guide for an expedition.',
+            name: 'sendReport',
+            description: 'Send a report to an email on a date.',
             parameters: {
               type: 'object',
               properties: {
                 email: {
                   type: 'string',
-                  description: 'The email of the user.',
+                  description: 'The email address to send the report to.',
+                },
+                onDate: {
+                  type: 'string',
+                  description: 'The date to send the report.',
                 },
               },
-              required: ['email'],
+              required: ['email', 'onDate'],
             },
           },
         },
         {
           type: 'function',
           function: {
-            name: 'joinExpedition',
-            description: 'Join an expedition.',
+            name: 'deleteReport',
+            description: 'Delete a report.',
             parameters: {
               type: 'object',
               properties: {
-                email: {
+                name: {
                   type: 'string',
-                  description: 'The email of the user.',
-                },
-                startDate: {
-                  type: 'string',
-                  description: 'The start date of the expedition.',
+                  description: 'The name of the report to delete.',
                 },
               },
-              required: ['email', 'startDate'],
+              required: ['name'],
             },
           },
         },
@@ -566,84 +570,77 @@ import { ChatOllama } from '@langchain/ollama';
 import { tool } from '@langchain/core/tools';
 import { z } from 'zod';
 
-const donateSchema = z.object({
-  amount: z.number().describe('The amount to donate.'),
+const createReportSchema = z.object({
+  name: z.string().describe('The name of the report.'),
 });
-const donateTool = tool<typeof donateSchema>(
-  async function ({ amount }) {
-    console.info('going to call donate API call...', amount);
-    return `Donation of ${amount} processed successfully`;
+const createReportTool = tool(
+  async function ({ name }) {
+    console.info('going to call createReport API call...', name);
+    return `Report "${name}" created successfully`;
   },
   {
-    name: 'donate',
-    description: 'Donate to 100 humanitarians.',
-    schema: donateSchema,
+    name: 'createReport',
+    description: 'Create a new report.',
+    schema: createReportSchema,
   }
 );
 
-const getExpeditionGuideSchema = z.object({
-  email: z.string().describe('The email of the user.'),
+const sendReportSchema = z.object({
+  email: z.string().describe('The email address to send the report to.'),
+  onDate: z.string().describe('The date to send the report.'),
 });
-const getExpeditionGuideTool = tool<typeof getExpeditionGuideSchema>(
-  async function ({ email }) {
-    console.info('going to call getExpeditionGuide API call...', email);
-    return `Expedition guide sent to ${email}`;
+const sendReportTool = tool(
+  async function ({ email, onDate }) {
+    console.info('going to call sendReport API call...', email, onDate);
+    return `Report scheduled to be sent to ${email} on ${onDate}`;
   },
   {
-    name: 'getExpeditionGuide',
-    description: 'Get a guide for an expedition.',
-    schema: getExpeditionGuideSchema,
+    name: 'sendReport',
+    description: 'Send a report to an email on a date.',
+    schema: sendReportSchema,
   }
 );
 
-const joinExpeditionSchema = z.object({
-  email: z.string().describe('The email of the user.'),
-  startDate: z.string().describe('The start date of the expedition.'),
+const deleteReportSchema = z.object({
+  name: z.string().describe('The name of the report to delete.'),
 });
-const joinExpeditionTool = tool<typeof joinExpeditionSchema>(
-  async function ({ email, startDate }) {
-    console.info('going to call joinExpedition API call...', email, startDate);
-    return `Successfully joined expedition starting ${startDate}`;
+const deleteReportTool = tool(
+  async function ({ name }) {
+    console.info('going to call deleteReport API call...', name);
+    return `Report "${name}" deleted successfully`;
   },
   {
-    name: 'joinExpedition',
-    description: 'Join an expedition.',
-    schema: joinExpeditionSchema,
+    name: 'deleteReport',
+    description: 'Delete a report.',
+    schema: deleteReportSchema,
   }
 );
 
 const tools = {
-  donate: donateTool,
-  getExpeditionGuide: getExpeditionGuideTool,
-  joinExpedition: joinExpeditionTool,
+  createReport: createReportTool,
+  sendReport: sendReportTool,
+  deleteReport: deleteReportTool,
 };
 
 async function main() {
   const model = new ChatOllama({
     model: 'qwen3:8b',
-  }).bindTools([donateTool, getExpeditionGuideTool, joinExpeditionTool]);
+  }).bindTools([createReportTool, sendReportTool, deleteReportTool]);
 
   const result = await model.invoke([
     {
+      role: 'system',
+      content: `Pick a tool to call.`,
+    },
+    {
       role: 'user',
-      content: `The user has a query below.  I want to execute a function to complete the user's request.  Here is the request:
-
----
-I want to get more information about an expedition.
----
-
-Here is some context about the user:
----
-My email address is clintg@adobe.com.
----
-
-Pick a tool to call.`,
+      content: 'Create a report called "Monthly Sales Report".',
     },
   ]);
 
   console.log(result);
 
-  const [toolCall] = result.tool_calls!;
+  const [toolCall] = result.tool_calls;
   const { name, args } = toolCall;
 
   const tool = tools[name];
@@ -664,7 +661,7 @@ import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/
 
 ```typescript
 const server = new McpServer({
-  name: '100 Humanitarians MCP',
+  name: 'Reports MCP',
   version: '1.0.0',
 });
 
@@ -712,7 +709,7 @@ curl --request POST \
   --url http://localhost:3000/mcp \
   --header 'Accept: application/json, text/event-stream' \
   --header 'Content-Type: application/json' \
-  --data '{"method":"tools/call","params":{"name":"donate","arguments":{"amount":546},"_meta":{"application":"workfront"}},"jsonrpc":"2.0","id":4}'
+  --data '{"method":"tools/call","params":{"name":"createReport","arguments":{"name":"Monthly Sales Report"},"_meta":{"application":"workfront"}},"jsonrpc":"2.0","id":4}'
 ```
 
 ```bash
@@ -726,7 +723,6 @@ import { ToolNode } from '@langchain/langgraph/prebuilt';
 import { MultiServerMCPClient } from '@langchain/mcp-adapters';
 import { tool } from '@langchain/core/tools';
 import { z } from 'zod';
-import { retriever } from '../embeddings.ts';
 
 const mcpClient = new MultiServerMCPClient({
   // Whether to prefix tool names with the server name (optional, default: true)
@@ -738,7 +734,7 @@ const mcpClient = new MultiServerMCPClient({
 
   // Server configuration
   mcpServers: {
-    '100-humanitarians': {
+    reports: {
       type: 'http',
       url: 'http://localhost:3000/mcp',
       headers: {
@@ -748,27 +744,21 @@ const mcpClient = new MultiServerMCPClient({
   },
 });
 
-const getInformationSchema = z.object({
-  questionOrSearchQuery: z
-    .string()
-    .describe(
-      'A question, or semantic search query, that can be answered from a vector store of embedded information regarding 100 humanitarians.'
-    ),
+const localToolSchema = z.object({
+  testing: z.string().describe('sample'),
 });
-const getInformationTool = tool<typeof getInformationSchema>(
-  async function ({ questionOrSearchQuery }) {
-    const [result] = await retriever.invoke(questionOrSearchQuery);
-    return `${result.pageContent}\n\nSource: ${result.metadata.source}`;
+const localTool = tool<typeof localToolSchema>(
+  async function ({ testing }) {
+    return 'Sample response';
   },
   {
-    name: 'getInformation',
-    description:
-      'Gets information regarding a question, or semantic search query, that can be answered from a vector store of embedded information regarding 100 humanitarians.',
-    schema: getInformationSchema,
+    name: 'localTool',
+    description: 'Some description',
+    schema: localToolSchema,
   }
 );
 
-export const tools = [...(await mcpClient.getTools()), getInformationTool];
+export const tools = [...(await mcpClient.getTools()), localTool];
 export const toolNode = new ToolNode(tools);
 ```
 
